@@ -42,14 +42,7 @@ UKF::UKF() {
   // Process noise standard deviation yaw acceleration in rad/s^2
   std_yawdd_ = 0.2;
 
-  std_laspx_ = 0.03;
-  std_laspy_ = 0.03;
-
-  std_radr_ = 0.3;
-  std_radphi_ = 0.025;
-  std_radrd_ = 0.3;
-
-   /**
+  /**
    * DO NOT MODIFY measurement noise values below.
    * These are provided by the sensor manufacturer.
    */
@@ -77,9 +70,9 @@ UKF::UKF() {
   // set weights
   double weight_0 = lambda_ / (lambda_ + n_aug_);
   weights_(0) = weight_0;
+  double weight = 0.5 / (n_aug_ + lambda_);
   for (int i = 1; i < 2 * n_aug_ + 1; ++i)
   { // 2n+1 weights
-    double weight = 0.5 / (n_aug_ + lambda_);
     weights_(i) = weight;
   }
 
@@ -290,4 +283,77 @@ void UKF::PredictMeanAndCovariance(VectorXd* x_out, MatrixXd* P_out) {
   // write result
   *x_out = x;
   *P_out = P;
+}
+
+void UKF::PredictRadarMeasurement(VectorXd *z_out, MatrixXd *S_out)
+{
+  // set measurement dimension, radar can measure r, phi, and r_dot
+  int n_z = 3;
+
+  // create matrix for sigma points in measurement space
+  MatrixXd Zsig = MatrixXd(n_z, 2 * n_aug_ + 1);
+
+  // mean predicted measurement
+  VectorXd z_pred = VectorXd(n_z);
+
+  // measurement covariance matrix S
+  MatrixXd S = MatrixXd(n_z, n_z);
+
+  // transform sigma points into measurement space
+  for (int i = 0; i < 2 * n_aug_ + 1; ++i)
+  { // 2n+1 simga points
+    // extract values for better readability
+    double p_x = Xsig_pred_(0, i);
+    double p_y = Xsig_pred_(1, i);
+    double v = Xsig_pred_(2, i);
+    double yaw = Xsig_pred_(3, i);
+
+    double v1 = cos(yaw) * v;
+    double v2 = sin(yaw) * v;
+
+    // measurement model
+    Zsig(0, i) = sqrt(p_x * p_x + p_y * p_y);                         // r
+    Zsig(1, i) = atan2(p_y, p_x);                                     // phi
+    Zsig(2, i) = (p_x * v1 + p_y * v2) / sqrt(p_x * p_x + p_y * p_y); // r_dot
+  }
+
+  // mean predicted measurement
+  z_pred.fill(0.0);
+  for (int i = 0; i < 2 * n_aug_ + 1; ++i)
+  {
+    z_pred = z_pred + weights_(i) * Zsig.col(i);
+  }
+
+  // innovation covariance matrix S
+  S.fill(0.0);
+  for (int i = 0; i < 2 * n_aug_ + 1; ++i)
+  { // 2n+1 simga points
+    // residual
+    VectorXd z_diff = Zsig.col(i) - z_pred;
+
+    // angle normalization
+    while (z_diff(1) > M_PI)
+      z_diff(1) -= 2. * M_PI;
+    while (z_diff(1) < -M_PI)
+      z_diff(1) += 2. * M_PI;
+
+    S = S + weights_(i) * z_diff * z_diff.transpose();
+  }
+
+  // add measurement noise covariance matrix
+  MatrixXd R = MatrixXd(n_z, n_z);
+  R << std_radr_ * std_radr_, 0, 0,
+      0, std_radphi_ * std_radphi_, 0,
+      0, 0, std_radrd_ * std_radrd_;
+  S = S + R;
+
+  // print result
+  std::cout << "z_pred: " << std::endl
+            << z_pred << std::endl;
+  std::cout << "S: " << std::endl
+            << S << std::endl;
+
+  // write result
+  *z_out = z_pred;
+  *S_out = S;
 }
