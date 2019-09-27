@@ -68,6 +68,15 @@ UKF::UKF() {
 
   // Radar measurement noise standard deviation radius change in m/s
   std_radrd_ = 0.3;
+
+  weights_ = VectorXd(2*n_aug_+1);
+  // set weights
+  double weight_0 = lambda_/(lambda_+n_aug_);
+  weights_(0) = weight_0;
+  for (int i=1; i<2*n_aug_+1; ++i) {  // 2n+1 weights
+    double weight = 0.5/(n_aug_+lambda_);
+    weights_(i) = weight;
+  }
   
   /**
    * End DO NOT MODIFY section for measurement noise values 
@@ -236,4 +245,41 @@ void UKF::SigmaPointPrediction(const MatrixXd& Xsig_aug, double delta_t, MatrixX
 
   // write result
   *Xsig_out = Xsig_pred;
+}
+
+void UKF::PredictMeanAndCovariance(VectorXd* x_out, MatrixXd* P_out) {
+
+  // create vector for predicted state
+  VectorXd x = VectorXd(n_x_);
+
+  // create covariance matrix for prediction
+  MatrixXd P = MatrixXd(n_x_, n_x_);
+
+  // predicted state mean
+  x.fill(0.0);
+  for (int i = 0; i < 2 * n_aug_ + 1; ++i) {  // iterate over sigma points
+    x = x + weights_(i) * Xsig_pred_.col(i);
+  }
+
+  // predicted state covariance matrix
+  P.fill(0.0);
+  for (int i = 0; i < 2 * n_aug_ + 1; ++i) {  // iterate over sigma points
+    // state difference
+    VectorXd x_diff = Xsig_pred_.col(i) - x;
+    // angle normalization
+    while (x_diff(3)> M_PI) x_diff(3)-=2.*M_PI;
+    while (x_diff(3)<-M_PI) x_diff(3)+=2.*M_PI;
+
+    P = P + weights_(i) * x_diff * x_diff.transpose() ;
+  }
+
+  // print result
+  std::cout << "Predicted state" << std::endl;
+  std::cout << x << std::endl;
+  std::cout << "Predicted covariance matrix" << std::endl;
+  std::cout << P << std::endl;
+
+  // write result
+  *x_out = x;
+  *P_out = P;
 }
