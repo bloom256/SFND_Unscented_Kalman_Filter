@@ -20,6 +20,7 @@ UKF::UKF() {
 
   // set state dimension
   n_x_ = 5;
+  n_aug_ = 7;
   
   // define spreading parameter
   lambda_ = 3 - n_x_;
@@ -36,10 +37,10 @@ UKF::UKF() {
       0, 0, 0, 0, 1;
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 1;
+  std_a_ = 0.2;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 1;
+  std_yawdd_ = 0.2;
 
   std_laspx_ = 0.03;
   std_laspy_ = 0.03;
@@ -143,4 +144,42 @@ void UKF::GenerateSigmaPoints(MatrixXd* Xsig_out) {
 
   // write result
   *Xsig_out = Xsig;
+}
+
+void UKF::AugmentedSigmaPoints(MatrixXd* Xsig_out) {
+  // create augmented mean vector
+  VectorXd x_aug = VectorXd(7);
+
+  // create augmented state covariance
+  MatrixXd P_aug = MatrixXd(7, 7);
+
+  // create sigma point matrix
+  MatrixXd Xsig_aug = MatrixXd(n_aug_, 2 * n_aug_ + 1);
+
+  // create augmented mean state
+  x_aug.head(5) = x_;
+  x_aug(5) = 0;
+  x_aug(6) = 0;
+
+  // create augmented covariance matrix
+  P_aug.fill(0.0);
+  P_aug.topLeftCorner(5,5) = P_;
+  P_aug(5,5) = std_a_*std_a_;
+  P_aug(6,6) = std_yawdd_*std_yawdd_;
+
+  // create square root matrix
+  MatrixXd L = P_aug.llt().matrixL();
+
+  // create augmented sigma points
+  Xsig_aug.col(0)  = x_aug;
+  for (int i = 0; i< n_aug_; ++i) {
+    Xsig_aug.col(i+1)       = x_aug + sqrt(lambda_+n_aug_) * L.col(i);
+    Xsig_aug.col(i+1+n_aug_) = x_aug - sqrt(lambda_+n_aug_) * L.col(i);
+  }
+
+  // print result
+  std::cout << "Xsig_aug = " << std::endl << Xsig_aug << std::endl;
+
+  // write result
+  *Xsig_out = Xsig_aug;
 }

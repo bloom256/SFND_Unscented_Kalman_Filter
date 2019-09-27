@@ -99,6 +99,7 @@ class UKF {
  private:
   
   void GenerateSigmaPoints(Eigen::MatrixXd* Xsig_out);
+  void AugmentedSigmaPoints(Eigen::MatrixXd *Xsig_out);
 };
 
 #endif  // UKF_H
