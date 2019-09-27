@@ -49,7 +49,7 @@ UKF::UKF() {
   std_radphi_ = 0.025;
   std_radrd_ = 0.3;
 
-      /**
+   /**
    * DO NOT MODIFY measurement noise values below.
    * These are provided by the sensor manufacturer.
    */
@@ -68,20 +68,21 @@ UKF::UKF() {
 
   // Radar measurement noise standard deviation radius change in m/s
   std_radrd_ = 0.3;
-
-  weights_ = VectorXd(2*n_aug_+1);
-  // set weights
-  double weight_0 = lambda_/(lambda_+n_aug_);
-  weights_(0) = weight_0;
-  for (int i=1; i<2*n_aug_+1; ++i) {  // 2n+1 weights
-    double weight = 0.5/(n_aug_+lambda_);
-    weights_(i) = weight;
-  }
   
   /**
    * End DO NOT MODIFY section for measurement noise values 
    */
-  
+
+  weights_ = VectorXd(2 * n_aug_ + 1);
+  // set weights
+  double weight_0 = lambda_ / (lambda_ + n_aug_);
+  weights_(0) = weight_0;
+  for (int i = 1; i < 2 * n_aug_ + 1; ++i)
+  { // 2n+1 weights
+    double weight = 0.5 / (n_aug_ + lambda_);
+    weights_(i) = weight;
+  }
+
   /**
    * TODO: Complete the initialization. See ukf.h for other member properties.
    * Hint: one or more values initialized above might be wildly off...
@@ -95,7 +96,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
    * TODO: Complete this function! Make sure you switch between lidar and radar
    * measurements.
    */
-  cout << "ProcessMeasurement" << endl;
+  //cout << "ProcessMeasurement" << endl;
 
   if (!is_initialized_)
   {
@@ -117,8 +118,11 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
       x_[4] = 0;
       x_[5] = 0;
     }
+    is_initialized_ = true;
     return;
   }
+
+  Prediction(meas_package.timestamp_);
 }
 
 void UKF::Prediction(double delta_t) {
@@ -127,7 +131,16 @@ void UKF::Prediction(double delta_t) {
    * Modify the state vector, x_. Predict sigma points, the state, 
    * and the state covariance matrix.
    */
-  cout << "Prediction" << endl;
+  //cout << "Prediction" << endl;
+
+  MatrixXd Xsig_aug;
+  AugmentedSigmaPoints(&Xsig_aug);
+  
+  SigmaPointPrediction(Xsig_aug, delta_t, &Xsig_pred_);
+  
+  Eigen::VectorXd x_pred;
+  Eigen::MatrixXd P_pred;
+  PredictMeanAndCovariance(&x_pred, &P_pred);
 }
 
 void UKF::UpdateLidar(MeasurementPackage meas_package) {
@@ -148,29 +161,6 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
    * You can also calculate the radar NIS, if desired.
    */
   cout << "UpdateRadar" << endl;
-}
-
-void UKF::GenerateSigmaPoints(MatrixXd* Xsig_out) {
-  // create sigma point matrix
-  MatrixXd Xsig = MatrixXd(n_x_, 2 * n_x_ + 1);
-
-  // calculate square root of P
-  MatrixXd A = P_.llt().matrixL();
-
-  // set first column of sigma point matrix
-  Xsig.col(0) = x_;
-
-  // set remaining sigma points
-  for (int i = 0; i < n_x_; ++i) {
-    Xsig.col(i+1)     = x_ + sqrt(lambda_+n_x_) * A.col(i);
-    Xsig.col(i+1+n_x_) = x_ - sqrt(lambda_+n_x_) * A.col(i);
-  }
-  
-  // print result
-  std::cout << "Xsig = " << std::endl << Xsig << std::endl;
-
-  // write result
-  *Xsig_out = Xsig;
 }
 
 void UKF::AugmentedSigmaPoints(MatrixXd* Xsig_out) {
@@ -205,7 +195,7 @@ void UKF::AugmentedSigmaPoints(MatrixXd* Xsig_out) {
   }
 
   // print result
-  std::cout << "Xsig_aug = " << std::endl << Xsig_aug << std::endl;
+  //std::cout << "Xsig_aug = " << std::endl << Xsig_aug << std::endl;
 
   // write result
   *Xsig_out = Xsig_aug;
@@ -259,7 +249,7 @@ void UKF::SigmaPointPrediction(const MatrixXd& Xsig_aug, double delta_t, MatrixX
   }
 
   // print result
-  std::cout << "Xsig_pred = " << std::endl << Xsig_pred << std::endl;
+  //std::cout << "Xsig_pred = " << std::endl << Xsig_pred << std::endl;
 
   // write result
   *Xsig_out = Xsig_pred;
@@ -292,10 +282,10 @@ void UKF::PredictMeanAndCovariance(VectorXd* x_out, MatrixXd* P_out) {
   }
 
   // print result
-  std::cout << "Predicted state" << std::endl;
-  std::cout << x << std::endl;
-  std::cout << "Predicted covariance matrix" << std::endl;
-  std::cout << P << std::endl;
+  //std::cout << "Predicted state" << std::endl;
+  //std::cout << x << std::endl;
+  //std::cout << "Predicted covariance matrix" << std::endl;
+  //std::cout << P << std::endl;
 
   // write result
   *x_out = x;

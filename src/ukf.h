@@ -98,7 +98,6 @@ class UKF {
 
  private:
   
-  void GenerateSigmaPoints(Eigen::MatrixXd* Xsig_out);
   void AugmentedSigmaPoints(Eigen::MatrixXd *Xsig_out);
   void SigmaPointPrediction(const Eigen::MatrixXd& Xsig_aug, double delta_t, Eigen::MatrixXd *Xsig_out);
   void PredictMeanAndCovariance(Eigen::VectorXd* x_pred, Eigen::MatrixXd* P_pred);
