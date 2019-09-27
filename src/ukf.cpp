@@ -99,6 +99,24 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 
   if (!is_initialized_)
   {
+    if (meas_package.sensor_type_ == MeasurementPackage::SensorType::LASER)
+    {
+      x_ << meas_package.raw_measurements_[0], meas_package.raw_measurements_[1], 0, 0, 0;
+    }
+    else
+    {
+      // measurement - r, phi, r_dot
+      double r = meas_package.raw_measurements_[0];
+      double phi = meas_package.raw_measurements_[1];
+      double phi_dot = meas_package.raw_measurements_[2];
+      double cos_phi = cos(phi);
+      double sin_phi = sin(phi);
+      x_[0] = r * cos_phi;
+      x_[1] = r * sin_phi;
+      x_[3] = sqrt(pow(phi_dot * cos_phi, 2) + pow(phi_dot * sin_phi, 2));
+      x_[4] = 0;
+      x_[5] = 0;
+    }
     return;
   }
 }
